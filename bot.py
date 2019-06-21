@@ -8,7 +8,8 @@ from vk_api import VkUpload
 from PIL import Image
 from urllib.request import urlopen
 
-Set = {"art_gallery" , "cafe" , "museum" , "park" , "restaurant" , "конкретное место" , "места рядом" , "привет" , "маршрут" , "Введите свое местоположение?"}
+Set0 = {"конкретное место" , "места рядом" , "привет" , "маршрут" , "Введите свое местоположение?"}
+set_t= {"art_gallery" , "cafe" , "museum" , "park" , "restaurant" }
 Num = {'0','1','2','3','4','5','6','7','8','9'}
 
 def location(s0):
@@ -116,7 +117,18 @@ def create_keyboard(response):
         keyboard.add_button('Конкретное место', color=VkKeyboardColor.DEFAULT)
         keyboard.add_button('Место рядом', color=VkKeyboardColor.POSITIVE)
 
-    elif response == 2:
+    elif response ==  2:
+
+        keyboard.add_button('cafe', color=VkKeyboardColor.DEFAULT)
+        keyboard.add_button('museum', color=VkKeyboardColor.PRIMARY)
+        keyboard.add_line()
+        keyboard.add_button('art_gallery', color=VkKeyboardColor.DEFAULT)
+        keyboard.add_button('restaurant', color=VkKeyboardColor.POSITIVE)
+        keyboard.add_button('park', color=VkKeyboardColor.NEGATIVE)
+
+
+
+    elif response == 3:
         keyboard.add_button('Тест', color=VkKeyboardColor.POSITIVE)
         print('закрываем клаву')
         return keyboard.get_empty_keyboard()
@@ -125,6 +137,8 @@ def create_keyboard(response):
 users = collections.defaultdict(int)
 c1='0'
 c2='0'
+type_=''
+
 session = requests.Session()
 vk_session = vk_api.VkApi(token='44afd0f665c16a98fe9178b549b7253e8a693f9caa63dd28a8b44a8539d78250aac0d2e46d022851bac90')
 longpoll = VkLongPoll(vk_session)
@@ -139,7 +153,7 @@ for event in longpoll.listen():
             vk.messages.send(user_id=event.user_id, message='Какое конкретно место?', random_id=0)
         elif event.text.lower() == 'места рядом' :
             print("event2")
-            vk.messages.send(user_id=event.user_id, message='Введите тип места, из предложенного ниже и радиус окрестности для поиска \n "art_gallery" , "cafe" , "museum" , "park" , "restaurant"  ', random_id=0)
+            vk.messages.send(user_id=event.user_id, message='Введите тип места, из предложенного ниже для поиска', keyboard=create_keyboard(2), random_id=0)
         elif event.text.lower() == 'привет' :
             print("event3")
             vk.messages.send(user_id=event.user_id, message='Введите свое местоположение?', random_id=0)
@@ -149,12 +163,12 @@ for event in longpoll.listen():
             vk.messages.send(user_id=event.user_id, message='Чо нада?', keyboard=create_keyboard(1), random_id=0)
             c1,c2 = location(event.text.lower())
             print(c1, c2)
-        elif event.text.lower() not in Set and event.text.lower()[-1] not in Num:
+        elif event.text.lower() not in set_t and event.text.lower() not in Set0:
             print("event5")
             Find_place(event.text.lower())
-        elif event.text.lower() not in Set and event.text.lower()[-1] in Num:
-            print("event6")
-            type_ , r = splt(event.text.lower())
+        elif event.text.lower() in set_t:
+            vk.messages.send(user_id=event.user_id, message='Введите радиус', random_id=0)
+        elif event.text.lower()[-1] in Num:
             nearbysearch_type(type_, str(r))
         else:
             vk.messages.send(user_id=event.user_id, message='Я таких слов не знаю', random_id=0)
