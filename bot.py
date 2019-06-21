@@ -61,8 +61,9 @@ def massage_photo(s_url, message):
     )
     vk.messages.send( user_id=event.user_id, attachment=','.join(attachments), message= message, random_id=0)
 
-def nearbysearch_type(s0, r):
-    s = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=55.9495800,37.5018300&radius=' + r + '&type='+ s0 + '&key=AIzaSyADGsGU8emVpO5QLlfZY5XnvYHh5B02Mi4&language=ru'
+def nearbysearch_type(s0, r, uid):
+    c1, c2 = users[uid]
+    s = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location='+c1+','+c2+'&radius=' + r + '&type='+ s0 + '&key=AIzaSyADGsGU8emVpO5QLlfZY5XnvYHh5B02Mi4&language=ru'
     place = requests.get(s)
     place_parse = json.loads(place.text)
     try:
@@ -77,7 +78,8 @@ def nearbysearch_type(s0, r):
     except KeyError:
         print('нет информации')
 
-def roads(s0): #place_id
+def roads(s0, uid): #place_id
+    с1, с2 = users[uid]
     s = 'https://maps.googleapis.com/maps/api/directions/json?origin='+c1+','+c2+'&destination=place_id:'+ s0 +'&key=AIzaSyADGsGU8emVpO5QLlfZY5XnvYHh5B02Mi4&language=ru'
     place = requests.get(s)
     place_parse = json.loads(place.text)
@@ -89,13 +91,13 @@ def roads(s0): #place_id
                 message+= html_to_text(j["html_instructions"])+'\n'
     return message
 
-def Find_place(s0):
+def Find_place(s0, uid):
     s = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json?key=AIzaSyADGsGU8emVpO5QLlfZY5XnvYHh5B02Mi4&input=" + s0 + "&inputtype=textquery&language=ru&fields=formatted_address,geometry,icon,name,permanently_closed,photos,place_id,plus_code,types"
     place = requests.get(s)
     place_parse = json.loads(place.text)
     try:
         if place_parse["status"]=="ZERO_RESULTS":
-            vk.messages.send(user_id=event.user_id, message='К сожалению, мы ничего не знаем об этом месте', random_id=0)
+            vk.messages.send(user_id=event.user_id, message='К сожалению, мы ничего не знаем об этом месте', keyboard=create_keyboard(1), random_id=0)
         else:
             t = 0
             for i in place_parse["candidates"]:
@@ -104,7 +106,7 @@ def Find_place(s0):
                 message = i['name'] + '\n' + i['formatted_address']
                 massage_photo("https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=" + i["photos"][0][
                     "photo_reference"] + "&key=AIzaSyADGsGU8emVpO5QLlfZY5XnvYHh5B02Mi4", message)
-                vk.messages.send(user_id=event.user_id, message=roads(i['place_id']), random_id=0)
+                vk.messages.send(user_id=event.user_id, message=roads(i['place_id'], uid), random_id=0)
                 t+=1
     except KeyError:
         print("Попробуйте пойти в другое место)")
@@ -115,7 +117,7 @@ def create_keyboard(response):
     if response == 1:
 
         keyboard.add_button('Конкретное место', color=VkKeyboardColor.DEFAULT)
-        keyboard.add_button('Место рядом', color=VkKeyboardColor.POSITIVE)
+        keyboard.add_button('Места рядом', color=VkKeyboardColor.POSITIVE)
 
     elif response ==  2:
 
@@ -135,8 +137,7 @@ def create_keyboard(response):
 
     return keyboard.get_keyboard()
 users = collections.defaultdict(int)
-c1='0'
-c2='0'
+lasq = collections.defaultdict(int)
 type_=''
 
 session = requests.Session()
@@ -148,7 +149,10 @@ for event in longpoll.listen():
        # response = event.text.lower()
        # keyboard = create_keyboard(response)
         print(event.text.lower())
-        if event.text.lower() == 'конкретное место' :
+        if lasq[event.user_id] in set_t:
+            nearbysearch_type(type_, event.text.lower(), event.user_id)
+            lasq[event.user_id] = ''
+        elif event.text.lower() == 'конкретное место' :
             print("event1")
             vk.messages.send(user_id=event.user_id, message='Какое конкретно место?', random_id=0)
         elif event.text.lower() == 'места рядом' :
@@ -160,16 +164,14 @@ for event in longpoll.listen():
         elif event.text.lower().find(',')!= -1 :
             print("event4")
             users[event.user_id] = location(event.text.lower())
-            vk.messages.send(user_id=event.user_id, message='Чо нада?', keyboard=create_keyboard(1), random_id=0)
-            c1,c2 = location(event.text.lower())
-            print(c1, c2)
+            print(users[event.user_id])
+            vk.messages.send(user_id=event.user_id, message='Что надо?', keyboard=create_keyboard(1), random_id=0)
         elif event.text.lower() not in set_t and event.text.lower() not in Set0:
             print("event5")
-            Find_place(event.text.lower())
+            Find_place(event.text.lower(), event.user_id)
         elif event.text.lower() in set_t:
             vk.messages.send(user_id=event.user_id, message='Введите радиус', random_id=0)
-        elif event.text.lower()[-1] in Num:
-            nearbysearch_type(type_, str(r))
+            lasq[event.user_id] = event.text.lower()
         else:
-            vk.messages.send(user_id=event.user_id, message='Я таких слов не знаю', random_id=0)
+            vk.messages.send(user_id=event.user_id, message='Я таких слов не знаю', keyboard=create_keyboard(1), random_id=0)
 
