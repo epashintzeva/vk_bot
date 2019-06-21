@@ -136,8 +136,8 @@ def create_keyboard(response):
         return keyboard.get_empty_keyboard()
 
     return keyboard.get_keyboard()
-users = collections.defaultdict(int)
-lasq = collections.defaultdict(int)
+users = collections.defaultdict(lambda x: ('0', '0'))
+lasq = collections.defaultdict(str)
 type_=''
 
 session = requests.Session()
@@ -150,7 +150,7 @@ for event in longpoll.listen():
        # keyboard = create_keyboard(response)
         print(event.text.lower())
         if lasq[event.user_id] in set_t:
-            nearbysearch_type(type_, event.text.lower(), event.user_id)
+            nearbysearch_type(lasq[event.user_id], event.text.lower(), event.user_id)
             lasq[event.user_id] = ''
         elif event.text.lower() == 'конкретное место' :
             print("event1")
